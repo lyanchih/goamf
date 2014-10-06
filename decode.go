@@ -281,13 +281,16 @@ func amf0TypedObjectDecoder(d *decodeState) (interface{}, error) {
 
 func amf0AcmPlusObjectDecoder(d *decodeState) (interface{}, error) {
   version := d.version
+  refS := d.refStore
   d.version = AMF3
+  d.refStore = new(refStore)
   f, err := typeDecoder(d)
   if err != nil {
     return nil, err
   }
   obj, err := f(d)
   d.version = version
+  d.refStore = refS
   return obj, err
 }
 

@@ -60,7 +60,7 @@ func (e *encodeState) marshal(v interface{}) (err error) {
 
 func (e *encodeState) marshalNew(v interface{}) (e2 *encodeState, err error) {
   e2 = &encodeState{
-    refStore: e.refStore,
+    refStore: new(refStore),
     version: e.version,
   }
   err = e2.marshal(v)
@@ -357,32 +357,40 @@ func (obj *AMF3Object) marshalAmf(e *encodeState) (err error) {
     return
   }
   
-  if index, hasRef := e.findTraitsRef(obj); hasRef {
-    return writeTraitsRef(e, index)
-  }
-  valueLen := uint32(len(obj.Values)) << 4 | 0x03
-  if obj.Dyn {
-    valueLen = valueLen | 0x08
-  }
-  _, err = writeU29(e, valueLen)
-  if err != nil {
-    return
-  }
-  
-  _, err = writeUTF8Vr(e, obj.ClassName)
-  if err != nil {
-    return
-  }
-  
-  tmpValues := make([]interface{}, 0, len(obj.Values))
-  for k, v := range obj.Values {
-    _, err = writeUTF8Vr(e, k)
+  tmpValues := make([]interface{}, 0)
+  if obj.isRefObj {
+    err := writeTraitsRef(e, obj.ref)
     if err != nil {
       return err
     }
-    tmpValues = append(tmpValues, v)
+    
+    for _, key := range obj.keys {
+      tmpValues = append(tmpValues, obj.Values[key])
+    }
+  } else {
+    valueLen := uint32(len(obj.Values)) << 4 | 0x03
+    if obj.Dyn {
+      valueLen = valueLen | 0x08
+    }
+    _, err = writeU29(e, valueLen)
+    if err != nil {
+      return
+    }
+    
+    _, err = writeUTF8Vr(e, obj.ClassName)
+    if err != nil {
+      return
+    }
+
+    for k, v := range obj.Values {
+      _, err = writeUTF8Vr(e, k)
+      if err != nil {
+        return err
+      }
+      tmpValues = append(tmpValues, v)
+    }
   }
-  
+    
   for _, v := range tmpValues {
     err = e.marshal(v)
     if err != nil {

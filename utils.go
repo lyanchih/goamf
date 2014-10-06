@@ -272,24 +272,23 @@ func readUTF8Vr(d *decodeState) (string, error) {
   
   if (u29 & 0x01) == 0 {
     index := u29 >> 1
-    
     return d.getStringRef(index)
-  } else {
-    length := u29 >> 1
-    if length == 0 {
-      return "", nil
-    }
-    
-    data := make([]byte, length)
-    _, err := d.Read(data)
-    if err != nil {
-      return "", err
-    }
-    
-    str := string(data)
-    d.addStringRef(str)
-    return str, nil
   }
+  
+  length := u29 >> 1
+  if length == 0 {
+    return "", nil
+  }
+  
+  data := make([]byte, length)
+  _, err = d.Read(data)
+  if err != nil {
+    return "", err
+  }
+  
+  str := string(data)
+  d.addStringRef(str)
+  return str, nil
 }
 
 func readAssocValue(d *decodeState) (k string, v interface{}, err error) {
@@ -336,7 +335,7 @@ func writeU29Ref(w Writer, index uint32) error {
 }
 
 func writeTraitsRef(w Writer, index uint32) error {
-  index = index << 2 & 0xfffffffd | 0x01
+  index = index << 2 | 0x01
   _, err := writeU29(w, index)
   return err
 }
@@ -364,6 +363,11 @@ func writeTrueOrFalse(w Writer, b bool) (n int, err error) {
 }
 
 func writeUTF8Vr(e *encodeState, str string) (n int, err error){
+  if str == "" {
+    err := writeAMF3EmptyUTF8(e)
+    return 1, err
+  }
+  
   if index, find := e.findStringRef(str); find {
     return writeUTF8Ref(e, index)
   }
@@ -372,7 +376,8 @@ func writeUTF8Vr(e *encodeState, str string) (n int, err error){
   if err != nil {
     return 0, err
   }
-  e.stringRef = append(e.stringRef, str)
+  
+  e.addStringRef(str)
   return
 }
 

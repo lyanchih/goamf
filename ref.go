@@ -128,5 +128,7 @@ func (ref *refStore) getTraitsRef(index uint32) (*AMF3Object, error) {
     obj.keys,
     make(map[string]interface{}, len(obj.keys)),
     make(map[string]interface{}),
+    true,
+    uint32(index),
   }, nil
 }

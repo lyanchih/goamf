@@ -111,10 +111,12 @@ type AMF3Object struct {
   keys []string
   Values map[string]interface{}
   DynValues map[string]interface{}
+  isRefObj bool
+  ref uint32
 }
 
 func NewAMF3Object(className string, dyn bool) (*AMF3Object) {
-  return &AMF3Object{className, dyn, make([]string, 0, 1), make(map[string]interface{}), make(map[string]interface{})}
+  return &AMF3Object{className, dyn, make([]string, 0, 1), make(map[string]interface{}), make(map[string]interface{}), false, uint32(0)}
 }
 
 func (obj *AMF3Object) AddValue(k string, v interface{}) {
